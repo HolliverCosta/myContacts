@@ -19,7 +19,7 @@ class CategoryController {
       name,
     });
 
-    response.json(newCategory);
+    response.status(201).json(newCategory);
   }
 
   async delete(request, response) {

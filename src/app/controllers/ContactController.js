@@ -1,5 +1,5 @@
 const ContactRepository = require('../repositorys/ContactRepository');
-
+const isValidUUID = require('../utils/isValidUUID');
 class ContactController {
   async index(request, response) {
     const { orderBy } = request.query;
@@ -11,6 +11,10 @@ class ContactController {
   async show(request, response) {
     const { id } = request.params;
 
+    if(!isValidUUID(id)){
+      return response.status(400).json({ error: 'Invalid user id' })
+    }
+
     const contact = await ContactRepository.findById(id);
 
     if (!contact) {
@@ -21,6 +25,10 @@ class ContactController {
 
   async delete(request, response) {
     const { id } = request.params;
+
+    if(!isValidUUID(id)){
+      return response.status(400).json({ error: 'Invalid user id' })
+    }
 
     const contact = await ContactRepository.findById(id);
 
@@ -38,24 +46,29 @@ class ContactController {
       name, email, phone, category_id,
     } = request.body;
 
+    if(category_id && !isValidUUID(category_id)){
+      return response.status(400).json({ error: 'Invalid category id' })
+    }
     if (!name) {
       return response.status(400).json({ error: 'name is required' });
     }
 
-    const contactExist = await ContactRepository.findByEmail(email);
+   if(email){
+      const contactExist = await ContactRepository.findByEmail(email);
 
-    if (contactExist) {
-      return response.status(400).json({ error: 'Email already exists' });
-    }
+      if (contactExist) {
+        return response.status(400).json({ error: 'Email already exists' });
+      }
+   }
 
     const newContact = await ContactRepository.create({
       name,
-      email,
+      email: email || null,
       phone,
-      category_id,
+      category_id: category_id || null,
     });
 
-    response.json(newContact);
+    response.status(201).json(newContact);
   }
 
   async update(request, response) {
@@ -64,22 +77,34 @@ class ContactController {
       name, email, phone, category_id,
     } = request.body;
 
+    if(!isValidUUID(id)){
+      return response.status(400).json({ error: 'Invalid user id' })
+    }
+    if(category_id && !isValidUUID(category_id)){
+      return response.status(400).json({ error: 'Invalid category id' })
+    }
+    if (!name) {
+      return response.status(400).json({ error: 'name is required' });
+    }
     const contactExist = await ContactRepository.findById(id);
 
     if (!contactExist) {
       return response.status(404).json({ error: 'Contact not found' });
     }
 
-    if (!name) {
-      return response.status(400).json({ error: 'name is required' });
+    if(email){
+      const contactExistByEmail = await ContactRepository.findByEmail(email);
+  
+      if (contactExistByEmail && contactExistByEmail.id !== id) {
+        return response.status(400).json({ error: 'Email already exists' });
+      }
     }
-    const contactExistByEmail = await ContactRepository.findByEmail(email);
 
-    if (contactExistByEmail && contactExistByEmail.id !== id) {
-      return response.status(400).json({ error: 'Email already exists' });
-    }
     const contact = await ContactRepository.update(id, {
-      name, email, phone, category_id,
+      name, 
+      email: email || null, 
+      phone, 
+      category_id: category_id || null,
     });
 
     response.json(contact);
